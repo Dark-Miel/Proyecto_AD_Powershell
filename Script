@@ -1,0 +1,203 @@
+$ftp = '\\ip\ftp\'
+$rutad = "C:\Users\Administrador\Downloads"
+$fyhhA = '(".\" + (("Hardware_Info_") + ((Get-Date).ToString("yyyy_MM_dd_HH"))) + (".txt"))'
+$fyhhP = '(".\" + (("Procesos_Info_") + ((Get-Date).ToString("yyyy_MM_dd_HH"))) + (".txt"))'
+$lastcod = '(".\" + (gci ./ | select -Last 1).name)'
+
+
+## Control Remoto ##
+$texto= "Conexion_de: "
+$miip = Test-Connection -ComputerName(hostname) -Count 1 | Select-Object ipv4address
+$miipv4= $miip.IPV4Address.ToString()
+$miipv4
+cls
+Write-Host "Ip de la maquina: "
+$ipRemota = Read-Host
+$port = 2020
+
+
+## Client ##
+$endpoint = new-object System.Net.IPEndPoint ([IPAddress]$ipRemota,$port)
+$udpclient=new-Object System.Net.Sockets.UdpClient
+$b=Invoke-Expression -Command "[Text.Encoding]::ASCII.GetBytes('cls;echo $texto $miipv4')"
+$bytesSent=$udpclient.Send($b,$b.length,$endpoint)
+$udpclient.Close()
+
+## Menú ##
+
+while(1)
+{
+cls
+
+Write-Host "Seleccione alguna opción"
+
+echo "1. Ver información del hardware"
+echo "2. Gestión de procesos"
+echo "3. Permitir o bloquear programas a usuarios"
+echo "4. Particionar disco"
+echo "5. Ver logs del sistema"
+echo "6. Configurar ipv4 a algún usuario"
+echo "7. Cambiar DnS a algún usuario"
+echo "8. Modificar ficheros de configuración de red"
+echo "9. Gestión de sistema de archivos"
+echo "10. Gestión de permisos locales a ficheros y directorios"
+echo "11. Copias de seguridad y restauración de copias"
+echo "12. Comprimir datos"
+echo "13. Permisos de red y locales"
+echo "14. Registro de sucesos"
+echo "15. Monitorización de sucesos"
+echo "16. Salir"
+
+$opcion = Read-Host
+
+Switch($opcion)
+    {
+        1{
+            cls
+            Write-Host "Seleccione alguna opción"
+            echo "1. Ver información"
+            echo "2. Descargar información"
+            $opcionH = Read-Host
+            Switch($opcionH)
+            {
+            
+                1{
+                  cls
+                              ## Client ##
+                  $endpoint = new-object System.Net.IPEndPoint ([IPAddress]$ipRemota,$port)
+                  $udpclient=new-Object System.Net.Sockets.UdpClient
+                  $b=Invoke-Expression -Command "[Text.Encoding]::ASCII.GetBytes('Get-ComputerInfo > $fyhhA;mv $lastcod $ftp')"
+                  $bytesSent=$udpclient.Send($b,$b.length,$endpoint)
+                  $udpclient.Close()
+                  Start-Sleep -Seconds 5
+                  gc ((gci $ftp).FullName | select -Last 1)
+                  Pause
+                 }
+                2{
+                  cls
+                  mv ($ftp + (gci $ftp | select -Last 1).name) -Destination $rutad
+                  Write-Host "El archivo se ha descargado en la ruta:> " -NoNewline
+                  Write-Host $rutad -BackgroundColor DarkCyan
+                  Pause
+                 }
+         
+
+
+            }
+         }
+
+        2{
+          cls
+          Write-Host "Elige alguna opción "
+          echo "1. Ver procesos"
+          echo "2. Abrir procesos"
+          echo "3. Cerrar procesos"
+          $opcionP = Read-Host
+          switch($opcionP)
+          {
+                1{
+                  cls
+                              ## Client ##
+                  $endpoint = new-object System.Net.IPEndPoint ([IPAddress]$ipRemota,$port)
+                  $udpclient=new-Object System.Net.Sockets.UdpClient
+                  $b=Invoke-Expression -Command "[Text.Encoding]::ASCII.GetBytes('Get-Process > $fyhhP;mv $lastcod $ftp')"
+                  $bytesSent=$udpclient.Send($b,$b.length,$endpoint)
+                  $udpclient.Close()
+                  Start-Sleep -Seconds 2
+                  gc ((gci $ftp).FullName | select -Last 1)
+                  Pause
+                 }
+                2{
+                  cls
+                  Write-Host "Nombre del proceso que quieras abrir: " -NoNewline
+                  $process = Read-Host 
+                              ## Client ##
+                  $endpoint = new-object System.Net.IPEndPoint ([IPAddress]$ipRemota,$port)
+                  $udpclient=new-Object System.Net.Sockets.UdpClient
+                  $b=Invoke-Expression -Command "[Text.Encoding]::ASCII.GetBytes('Start-Process $process')"
+                  $bytesSent=$udpclient.Send($b,$b.length,$endpoint)
+                  $udpclient.Close()
+                  Pause
+                 }
+                3{
+                  cls
+                  Write-Host "Nombre del proceso que quieras cerrar: " -NoNewline
+                  $processC = Read-Host 
+                              ## Client ##
+                  $endpoint = new-object System.Net.IPEndPoint ([IPAddress]$ipRemota,$port)
+                  $udpclient=new-Object System.Net.Sockets.UdpClient
+                  $b=Invoke-Expression -Command "[Text.Encoding]::ASCII.GetBytes('Stop-Process $processC')"
+                  $bytesSent=$udpclient.Send($b,$b.length,$endpoint)
+                  $udpclient.Close()
+                  Pause
+                 }
+
+          }
+
+          
+         }
+        3{
+          cls
+          Write-Host "Elige alguna opción"
+          echo "1. Crear nueva GPO"
+          echo "2. Borrar GPO"
+          $opcionGPO = Read-Host
+          switch($opcionGPO)
+          {
+                1{
+                  cls
+                  $dominioon = (Get-ADDomain| select name).name
+                  Write-Host 'Elige el nombre de la GPO nueva para el dominio ' -NoNewline
+                  Write-Host $dominioon.ToUpper() -NoNewline
+                  Write-Host " : " -NoNewline
+                  $nombreGPO = Read-Host
+                  $Domain = (Get-WmiObject Win32_ComputerSystem).Domain
+                  $gpo = Get-GPO -Name $nombreGPO
+                  cls
+                  Write-Host "Elige alguna opción"
+                  echo "1. Aplicarlo a OU"
+                  echo "2. Aplicarlo a algun usuario en especifico"
+                  $opcionGPOL = Read-Host
+                  switch($opcionGPOL)
+                  {
+                    1{
+                      cls
+                      $OU = Read-host "¿A qué unidad organizativa la quieres aplicar?"
+                      $1ro = $Domain.split(".")[0]
+                      $2do = $Domain.Split(".")[1]
+                      cls
+                      $programaBlock = Read-Host "¿Qué programa quieres bloquear?"
+                      $rutaprog = Get-Command -Name $programaBlock | Select-Object -ExpandProperty Source
+                      $errorOU = $true
+                           foreach($unidades4each in (Get-ADOrganizationalUnit -Filter * | Select-Object Name).name)
+                          {
+                              if($OU -match $unidades4each)
+                              {
+                               $errorOU = $false
+                               New-GPO -Name $nombreGPO | New-GPLink -Name $nombreGPO -Target "OU=$OU,DC=$1ro,DC=$2do"
+                               $nuevaRegla = New-GPSoftwareRestrictionPolicyRule -Path $rutaprog -SecurityLevel Disallowed
+                               Add-GPSoftwareRestrictionPolicyRule -Name $nombreGPO -Rule $nuevaRegla -GPO $gpo
+                              }
+                          }
+                          if($errorOU)
+                          {
+                           Write-Host "Unidad Organizativa desconocida..."
+                          }
+                          Pause
+                     }
+
+                    2{
+                      cls
+
+
+                     }
+                  }
+
+                 }
+
+          }
+
+         }            
+
+    }
+}
